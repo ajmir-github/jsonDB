@@ -1,0 +1,15 @@
+{
+  "name": "json-db",
+  "version": "1.0.0",
+  "description": "This a simple optimal json-based database.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "Ajmir Raziqi",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
