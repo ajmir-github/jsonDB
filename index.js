@@ -3,6 +3,7 @@ const {
   bodyFileName,
   createCollection,
   deleteCollection,
+  readCollection,
   readCollectionBody,
   readCollectionHead,
   writeToCollection,
@@ -24,12 +25,12 @@ class Collection {
   async _init() {
     // presisit the existence of this project
     this.processing = true;
-    await createCollection();
+    await createCollection(this.collectionPath);
     this.processing = false;
   }
+  async find() {}
 }
 
 (async () => {
   const Users = new Collection("users");
-  console.log(Users);
 })();

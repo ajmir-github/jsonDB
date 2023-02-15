@@ -41,6 +41,25 @@ function deleteCollection(parentPath) {
   });
 }
 
+function readCollection(parentPath) {
+  // Only create one when it is not created
+  return new Promise(async (resolve, reject) => {
+    try {
+      const headPath = path.join(parentPath, headFileName);
+      const bodyPath = path.join(parentPath, bodyFileName);
+      const headArray = await read(headPath);
+      const bodyArray = await read(bodyPath);
+      // create a joined array
+      let docs = [];
+      for (let index = 0; index < headArray.length; index++) {
+        docs.push(headArray[index].concat(bodyArray[index]));
+      }
+      resolve(docs);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 function readCollectionHead(parentPath) {
   // Only create one when it is not created
   return new Promise(async (resolve, reject) => {
@@ -87,6 +106,7 @@ module.exports = {
   bodyFileName,
   createCollection,
   deleteCollection,
+  readCollection,
   readCollectionHead,
   readCollectionBody,
   writeToCollection,
