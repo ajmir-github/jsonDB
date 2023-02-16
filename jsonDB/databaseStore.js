@@ -95,10 +95,8 @@ function writeToCollection(parentPath, data) {
     try {
       const headPath = path.join(parentPath, headFileName);
       const bodyPath = path.join(parentPath, bodyFileName);
-      await Promise.all([
-        databaseFS.write(headPath, data.head),
-        databaseFS.write(bodyPath, data.body),
-      ]);
+      await databaseFS.write(headPath, data.head);
+      await databaseFS.write(bodyPath, data.body);
       resolve();
     } catch (error) {
       reject(error);
