@@ -1,5 +1,6 @@
 const path = require("path");
-const { read, write, exists, createFolder, deleteFolder } = require("./jsonFS");
+
+const databaseFS = require("./databaseFS.js");
 
 const headFileName = "head.json";
 const bodyFileName = "body.json";
@@ -13,14 +14,14 @@ function createCollection(parentPath) {
       const headPath = path.join(parentPath, headFileName);
       const bodyPath = path.join(parentPath, bodyFileName);
       // parent folder
-      const isParentCreated = await exists(parentPath);
-      if (!isParentCreated) await createFolder(parentPath);
+      const isParentCreated = await databaseFS.exists(parentPath);
+      if (!isParentCreated) await databaseFS.createFolder(parentPath);
       // head file
-      const isHeadCreated = await exists(headPath);
-      if (!isHeadCreated) await write(headPath, []);
+      const isHeadCreated = await databaseFS.exists(headPath);
+      if (!isHeadCreated) await databaseFS.write(headPath, []);
       // body file
-      const isBodyCreated = await exists(bodyPath);
-      if (!isBodyCreated) await write(bodyPath, []);
+      const isBodyCreated = await databaseFS.exists(bodyPath);
+      if (!isBodyCreated) await databaseFS.write(bodyPath, []);
       resolve();
     } catch (error) {
       reject(error);
@@ -32,8 +33,8 @@ function deleteCollection(parentPath) {
   return new Promise(async (resolve, reject) => {
     try {
       // parent folder
-      const isParentCreated = await exists(parentPath);
-      if (isParentCreated) await deleteFolder(parentPath);
+      const isParentCreated = await databaseFS.exists(parentPath);
+      if (isParentCreated) await databaseFS.deleteFolder(parentPath);
       resolve();
     } catch (error) {
       reject(error);
@@ -47,12 +48,14 @@ function readCollection(parentPath) {
     try {
       const headPath = path.join(parentPath, headFileName);
       const bodyPath = path.join(parentPath, bodyFileName);
-      const headArray = await read(headPath);
-      const bodyArray = await read(bodyPath);
+      const [headArray, bodyArray] = await Promise.all([
+        databaseFS.read(headPath),
+        databaseFS.read(bodyPath),
+      ]);
       // create a joined array
       let docs = [];
       for (let index = 0; index < headArray.length; index++) {
-        docs.push(headArray[index].concat(bodyArray[index]));
+        docs.push({ ...headArray[index], ...bodyArray[index] });
       }
       resolve(docs);
     } catch (error) {
@@ -65,7 +68,7 @@ function readCollectionHead(parentPath) {
   return new Promise(async (resolve, reject) => {
     try {
       const headPath = path.join(parentPath, headFileName);
-      const file = await read(headPath);
+      const file = await databaseFS.read(headPath);
       resolve(file);
     } catch (error) {
       reject(error);
@@ -78,7 +81,7 @@ function readCollectionBody(parentPath) {
   return new Promise(async (resolve, reject) => {
     try {
       const headPath = path.join(parentPath, bodyFileName);
-      const file = await read(headPath);
+      const file = await databaseFS.read(headPath);
       resolve(file);
     } catch (error) {
       reject(error);
@@ -92,8 +95,10 @@ function writeToCollection(parentPath, data) {
     try {
       const headPath = path.join(parentPath, headFileName);
       const bodyPath = path.join(parentPath, bodyFileName);
-      await write(headPath, data.head);
-      await write(bodyPath, data.body);
+      await Promise.all([
+        databaseFS.write(headPath, data.head),
+        databaseFS.write(bodyPath, data.body),
+      ]);
       resolve();
     } catch (error) {
       reject(error);
