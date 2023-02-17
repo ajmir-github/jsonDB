@@ -11,31 +11,30 @@ function tryAgain(callback, delay = 100) {
   });
 }
 
-function cvtRowToObj(schemas, headCols, bodyCols, ignoreNull = false) {
+function cvtRowToObj(schema, doc, ignoreNull = false) {
   let object = {};
-  let pushInto = (schema, cols) =>
-    schema.forEach((key, index) => {
-      const data = cols[index];
-      if (ignoreNull && data === null) return;
-      object[key] = data;
-    });
-  pushInto(schemas.head, headCols);
-  pushInto(schemas.body, bodyCols);
+  schema.forEach((key, index) => {
+    const data = doc[index];
+    if (ignoreNull && data === null) return;
+    object[key] = data;
+  });
   return object;
 }
 
-function cvtObjToRow(schemas, doc, nullIfEmpty = true) {
-  function iter(key) {
+function cvtObjToRow(schema, doc, nullIfEmpty = true) {
+  return schema.map((key) => {
     const obj = doc[key];
     return typeof obj !== "undefined" ? obj : nullIfEmpty ? null : undefined;
-  }
-  return {
-    head: schemas.head.map(iter),
-    body: schemas.body.map(iter),
-  };
+  });
 }
+
+function uid() {
+  return Date.now() + "x" + parseInt(Math.random() * 1000);
+}
+
 module.exports = {
   tryAgain,
   cvtRowToObj,
   cvtObjToRow,
+  uid,
 };

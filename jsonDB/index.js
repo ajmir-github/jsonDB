@@ -1,93 +1,107 @@
-const {
-  headFileName,
-  bodyFileName,
-  createCollection,
-  deleteCollection,
-  readCollection,
-  readCollectionBody,
-  readCollectionHead,
-  writeToCollection,
-} = require("./databaseStore");
-const { tryAgain } = require("./databaseUtils");
+const JsonFile = require("./JsonFile");
+const { uid, cvtObjToRow, cvtRowToObj } = require("./utils");
 const path = require("path");
-const { rejects } = require("assert");
 
 const projectDir = process.cwd();
 const sourceDir = path.join(projectDir, "source");
 
-function splitHeadAndBody(doc, properties) {
-  const entries = Object.entries(doc);
-  const data = { head: {}, body: {} };
-  for (const [key, value] of entries) {
-    if (properties.head.includes(key)) data.head[key] = value;
-    if (properties.body.includes(key)) data.body[key] = value;
-  }
-  return data;
-}
-
 class Collection {
-  constructor(collectionName, properties) {
+  constructor(collectionName, schema, cacheInMemory = true) {
     this.collectionName = collectionName;
-    this.properties = properties;
-    this.collectionDir = path.join(sourceDir, collectionName);
-    this.processing = false;
-    this._init();
-    this.headStorage = null;
+    this.schema = ["id", ...schema];
+    this.path = path.join(sourceDir, collectionName + ".json");
+    this.cacheInMemory = cacheInMemory;
+    this.source = new JsonFile(this.path, this.cacheInMemory);
   }
-
-  _funcStack(func) {
+  async _query(func) {
     return new Promise(async (resolve, reject) => {
       try {
-        // let one operation on the file at a time
-        if (this.processing) await tryAgain(() => !this.processing);
-        this.processing = true;
-        const result = await func((error) => {
-          throw error;
-        });
-        this.processing = false;
+        const rows = await this.source.read();
+        const result = await func(rows);
         resolve(result);
       } catch (error) {
-        this.processing = false;
         reject(error);
       }
     });
   }
-  _init() {
-    // presisit the existence of this project
-    return this._funcStack(async () => {
-      await createCollection(this.collectionDir);
-      this.headStorage = await readCollectionHead(this.collectionDir);
-    });
-  }
-  find() {
-    return this._funcStack(async () => {
-      return await readCollection(this.collectionDir);
-    });
-  }
-  count() {
-    return this._funcStack(async () => {
-      return this.headStorage.length;
+  async _mutate(func) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const rows = await this.source.read();
+        const updatedRows = await func(rows);
+        const result = await this.source.write(updatedRows);
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
-  create(doc) {
-    return this._funcStack(async () => {
-      // propare then env
-      const data = splitHeadAndBody(doc, this.properties);
-      const head = this.headStorage;
-      const body = await readCollectionBody(this.collectionDir);
-      // bring the changes
-      head.push(data.head);
-      body.push(data.body);
-      // save the changes
-      await writeToCollection(this.collectionDir, { head, body });
+  async findOne(compare = () => true) {
+    return this._query((rows) => {
+      let foundDoc = null;
+      for (const row of rows) {
+        const doc = cvtRowToObj(this.schema, row, true);
+        if (compare(doc)) {
+          foundDoc = doc;
+          break;
+        }
+      }
+      return foundDoc;
+    });
+  }
+  async find(compare = () => true) {
+    return this._query((rows) => {
+      let docs = [];
+      for (const row of rows) {
+        const doc = cvtRowToObj(this.schema, row, true);
+        if (compare(doc)) docs.push(doc);
+      }
+      return docs;
+    });
+  }
+  async count(compare = () => true) {
+    return this._query((rows) => {
+      let counted = 0;
+      for (const row of rows) {
+        const doc = cvtRowToObj(this.schema, row, true);
+        if (compare(doc)) counted++;
+      }
+      return counted;
     });
   }
 
-  clear() {
-    return this._funcStack(async () => {
-      await writeToCollection(this.collectionDir, { head: [], body: [] });
-      this.headStorage = [];
+  async create(doc) {
+    return this._mutate((rows) => {
+      const newDoc = cvtObjToRow(this.schema, {
+        ...doc,
+        id: uid(),
+      });
+      rows.push(newDoc);
+      return rows;
+    });
+  }
+  async update(compare, entries) {
+    return this._mutate((rows) => {
+      let updatedRows = rows.map((row) => {
+        const doc = cvtRowToObj(this.schema, row, true);
+        if (!compare(doc)) return row;
+        return cvtObjToRow(this.schema, { ...doc, ...entries });
+      });
+      return updatedRows;
+    });
+  }
+  async delete(compare) {
+    return this._mutate((rows) => {
+      const updatedRows = rows.filter(
+        (row) => !compare(cvtRowToObj(this.schema, row))
+      );
+      return updatedRows;
+    });
+  }
+  async clear() {
+    return this._mutate((rows) => {
+      return [];
     });
   }
 }
