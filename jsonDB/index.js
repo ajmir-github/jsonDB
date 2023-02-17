@@ -2,16 +2,17 @@ const JsonFile = require("./JsonFile");
 const { uid, cvtObjToRow, cvtRowToObj } = require("./utils");
 const path = require("path");
 
-const projectDir = process.cwd();
-const sourceDir = path.join(projectDir, "source");
-
 class Collection {
-  constructor(collectionName, schema, cacheInMemory = true) {
+  constructor(
+    collectionName,
+    schema,
+    sourceDir = "source",
+    cacheInMemory = true
+  ) {
     this.collectionName = collectionName;
     this.schema = ["id", ...schema];
-    this.path = path.join(sourceDir, collectionName + ".json");
-    this.cacheInMemory = cacheInMemory;
-    this.source = new JsonFile(this.path, this.cacheInMemory);
+    this.path = path.join(process.cwd(), sourceDir, collectionName + ".json");
+    this.source = new JsonFile(this.path, cacheInMemory);
   }
   async _query(func) {
     return new Promise(async (resolve, reject) => {
@@ -36,12 +37,11 @@ class Collection {
       }
     });
   }
-
-  async findOne(compare = () => true) {
+  async findOne(compare = () => true, projection = this.schema) {
     return this._query((rows) => {
       let foundDoc = null;
       for (const row of rows) {
-        const doc = cvtRowToObj(this.schema, row, true);
+        const doc = cvtRowToObj(projection, row, true);
         if (compare(doc)) {
           foundDoc = doc;
           break;
@@ -50,11 +50,11 @@ class Collection {
       return foundDoc;
     });
   }
-  async find(compare = () => true) {
+  async find(compare = () => true, projection = this.schema) {
     return this._query((rows) => {
       let docs = [];
       for (const row of rows) {
-        const doc = cvtRowToObj(this.schema, row, true);
+        const doc = cvtRowToObj(projection, row, true);
         if (compare(doc)) docs.push(doc);
       }
       return docs;
@@ -71,7 +71,7 @@ class Collection {
     });
   }
 
-  async create(doc) {
+  async create(doc = {}) {
     return this._mutate((rows) => {
       const newDoc = cvtObjToRow(this.schema, {
         ...doc,
@@ -81,7 +81,7 @@ class Collection {
       return rows;
     });
   }
-  async update(compare, entries) {
+  async update(compare = () => false, entries = {}) {
     return this._mutate((rows) => {
       let updatedRows = rows.map((row) => {
         const doc = cvtRowToObj(this.schema, row, true);
@@ -91,7 +91,7 @@ class Collection {
       return updatedRows;
     });
   }
-  async delete(compare) {
+  async delete(compare = () => false) {
     return this._mutate((rows) => {
       const updatedRows = rows.filter(
         (row) => !compare(cvtRowToObj(this.schema, row))
@@ -100,10 +100,28 @@ class Collection {
     });
   }
   async clear() {
-    return this._mutate((rows) => {
-      return [];
-    });
+    return this._mutate(() => []);
   }
 }
 
 module.exports = { Collection };
+
+// const User = new Collection("Users", ["name", "type"]);
+// const Post = new Collection("Posts", ["title", "author"]);
+
+// (async () => {
+// await User.create({
+//   name: "Firoz",
+//   type: "User",
+// });
+// await User.update((doc) => doc.id == "1676635191801x485", {
+//   password: "xxx",
+// });
+// console.log(await User.findOne((doc) => doc.name == "Firoz", ["id", "name"]));
+// console.log(await User.find(undefined, ["id", "name"]));
+// await Post.create({
+//   author: "1676643520274x162",
+//   title: "CSS",
+// });
+// console.log(await Post.find());
+// })();
