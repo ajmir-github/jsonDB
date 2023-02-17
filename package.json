@@ -1,18 +1,28 @@
 {
-  "name": "json-db",
+  "name": "jsondb",
   "version": "1.0.0",
-  "description": "This a simple optimal json-based database.",
-  "main": "server.js",
+  "description": "This is a simple json-based database that can used in memory, too.",
+  "main": "index.js",
   "scripts": {
-    "start": "node ./server.js",
-    "dev": "node --watch ./server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ajmir-github/jsonDB.git"
   },
   "author": "Ajmir Raziqi",
+  "keywords": [
+    "Database",
+    "In memory database",
+    "Json-based database",
+    "simple and fast database"
+  ],
   "license": "ISC",
-  "devDependencies": {
-    "nodemon": "^2.0.20"
+  "bugs": {
+    "url": "https://github.com/ajmir-github/jsonDB/issues"
   },
-  "dependencies": {
-    "@faker-js/faker": "^7.6.0"
+  "homepage": "https://github.com/ajmir-github/jsonDB#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

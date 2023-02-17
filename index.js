@@ -1,5 +1,5 @@
-const JsonFile = require("./JsonFile");
-const { uid, cvtObjToRow, cvtRowToObj } = require("./utils");
+const JsonFile = require("./libs/JsonFile");
+const { uid, cvtObjToRow, cvtRowToObj } = require("./libs/utils");
 const path = require("path");
 
 class Collection {
