@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "description": "This is a simple json-based database that can used in memory, too.",
   "main": "index.js",
-  "type": "module",
   "scripts": {
-    "start": "node ./index.js",
-    "dev": "node --watch ./index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "repository": {
     "type": "git",
